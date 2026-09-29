@@ -47,6 +47,7 @@ Available controls include:
 - Custom Caption
 - Metadata On/Off
 - Metadata Title / Author / Artist / Audio / Subtitle / Video fields
+- UI Pictures: Start Pic / Settings Pic / Status Pic, with Set/Edit/View/Reset-to-default controls
 
 `{filename}` uses the selected Telegram filename style in captions. `{plain_filename}` always inserts a normal HTML-safe filename. Caption variables also include file size and duration where supported.
 
@@ -54,7 +55,7 @@ MKV/MP4 format conversion is a real FFmpeg stream-copy remux, not a fake extensi
 
 ## Status-picture UI
 
-Queue, batch-start, download, metadata, upload, failure and completion states use `Config.STATUS_PIC`. The photo is sent once and its caption is edited for progress, avoiding repeated image spam.
+Queue, batch-start, download, metadata, upload, failure and completion states use the user's saved **Status Pic** when configured, otherwise `Config.STATUS_PIC`. `/start` and `/settings` can also use separate user-configured pictures. Pictures are stored as Telegram `file_id` values in MongoDB, so changing them does not require editing the source code. The status photo is sent once and its caption is edited for progress, avoiding repeated image spam.
 
 ## MediaInfo
 
@@ -131,9 +132,57 @@ For an already-cloned repository:
 ```bash
 cd /root/Advance-Rename-Bot
 pkill -f "python3 miko.py" 2>/dev/null || true
-unzip -o /root/Advance-Rename-Bot-Configured-v23.zip -d .
+unzip -o /root/Advance-Rename-Bot-Configured-v26.zip -d .
 source venv/bin/activate
 pip install -r requirements.txt
 python3 -m compileall -q .
 python3 miko.py
 ```
+
+## Native Colored Buttons
+
+The bot applies Telegram's native inline-button styles automatically:
+
+- **Green / Success** — Done/Start, Set/Edit/Save, enabled/selected options.
+- **Red / Danger** — Cancel, Clear, Delete, Close, Reset, Off.
+- **Blue / Primary** — Settings, Back, Open/View, UI Pictures and navigation actions.
+- Neutral choices keep the Telegram client default style until selected.
+
+Colored keyboards are now included in the **same Bot API send/edit request** as the message/caption. The old two-step `send neutral → edit keyboard colour` flow has been removed, so supported Telegram clients should render the colour on the first frame instead of showing it late. Telegram controls the exact shade and only semantic native styles are used; arbitrary HEX/RGB backgrounds are not supported.
+
+
+## Project structure
+
+The codebase is split by responsibility so future fixes do not require editing one very large plugin file.
+
+```text
+miko.py                         # app startup + Telegram command sync
+config.py                       # configured test values
+plugins/
+  start.py                      # /start handler
+  settings.py                   # settings callbacks/input handlers only
+  file_rename.py                # batch command/message handlers only
+  mediainfo.py                  # /mediainfo handler only
+helper/
+  buttons.py                    # styled Telegram buttons/messages
+  database.py                   # MongoDB settings layer
+  settings/
+    state.py                    # settings constants + prompt state
+    common.py                   # common keyboard/panel helpers
+    home.py                     # settings home panel
+    rename_panels.py            # rename/media/container/font/caption panels
+    metadata.py                 # metadata panels
+    pictures.py                 # Start/Settings/Status picture panels
+  rename/
+    models.py                   # queue/prepared dataclasses
+    state.py                    # batch state, semaphores and locks
+    parser.py                   # season/episode/quality parsing
+    transfer.py                 # Telegram download/upload
+    processing.py               # remux, metadata, thumbnail and preparation
+    ui.py                       # queue/status picture UI
+    batch.py                    # strict FIFO producer/uploader pipeline
+  mediainfo_probe.py            # partial Telegram sample + mediainfo CLI
+  mediainfo_report.py           # responsive HTML report generation
+```
+
+This is a structural refactor only: the v25 queue, strict upload order, settings, MediaInfo, picture controls and colored-button behavior are preserved.

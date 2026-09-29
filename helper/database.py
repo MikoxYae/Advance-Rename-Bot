@@ -22,6 +22,9 @@ class Database:
         "meta_audio": None,
         "meta_subtitle": None,
         "meta_video": None,
+        "ui_start_pic": None,
+        "ui_settings_pic": None,
+        "ui_status_pic": None,
     }
 
     def __init__(self, uri: str, database_name: str):

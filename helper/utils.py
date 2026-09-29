@@ -8,6 +8,7 @@ import time
 from pyrogram.errors import FloodWait, MessageNotModified
 
 from config import Config
+from helper.buttons import edit_message_styled
 
 
 INVALID_FILENAME = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
@@ -45,31 +46,30 @@ def safe_filename(name: str, fallback: str = "renamed_file") -> str:
 
 
 async def safe_edit_text(message, text: str, reply_markup=None) -> bool:
-    """Edit a text or photo-status message without killing the media job.
+    """Edit a text/photo-status message without killing the media job.
 
-    Batch/progress UI uses photo messages.  For those messages Telegram requires
-    edit_caption(), while normal messages use edit_text().  Keeping the choice
-    here means download/upload callbacks can use one safe helper.
+    When buttons are present the caption/text and styled keyboard are sent in
+    one Bot API request, so there is no neutral-button -> coloured-button flash.
     """
     async def _edit():
+        if reply_markup is not None:
+            return await edit_message_styled(message, text, reply_markup)
         if getattr(message, "photo", None):
-            await message.edit_caption(caption=text, reply_markup=reply_markup)
+            await message.edit_caption(caption=text)
         else:
-            await message.edit_text(text, reply_markup=reply_markup)
+            await message.edit_text(text)
+        return True
 
     try:
-        await _edit()
-        return True
+        return bool(await _edit())
     except MessageNotModified:
         return False
     except FloodWait as exc:
-        # Do not block a media transfer for a long Telegram UI flood wait.
         wait = int(getattr(exc, "value", 0) or 0)
         if 0 < wait <= 3:
             await asyncio.sleep(wait)
             try:
-                await _edit()
-                return True
+                return bool(await _edit())
             except Exception:
                 return False
         return False

@@ -1,8 +1,9 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, BotCommand
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from config import Config
 from helper.database import settings_db
+from helper.buttons import send_photo_styled
 
 
 START_TEXT = (
@@ -22,9 +23,11 @@ def start_keyboard():
 
 @Client.on_message(filters.private & filters.command("start"))
 async def start_handler(client: Client, message: Message):
-    await settings_db.ensure_user(message.from_user.id)
-    await message.reply_photo(
-        photo=Config.SETTINGS_PIC,
-        caption=START_TEXT,
-        reply_markup=start_keyboard(),
-    )
+    user = await settings_db.get_user(message.from_user.id)
+    markup = start_keyboard()
+    photo = user.get("ui_start_pic") or Config.SETTINGS_PIC
+    try:
+        await send_photo_styled(client, message, photo, START_TEXT, markup)
+    except Exception:
+        # Decorative UI must never make /start unusable.
+        await message.reply_photo(photo=photo, caption=START_TEXT, reply_markup=markup)
