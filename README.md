@@ -10,6 +10,7 @@ The bot automatically synchronizes its Telegram command menu every time it start
 - `/settings` — open the paginated rename settings panel
 - `/mediainfo` — reply to a media file to generate a self-hosted MediaInfo report
 - `/done` — start the files currently collected in the batch queue
+- Natural batch auto-sorting: quality groups (480p → 720p → 1080p → …), then season/episode ascending. Unparsed files remain deterministic by Telegram arrival order.
 - `/clear` — clear waiting files without interrupting the running batch
 - `/cancel` — safely stop the current batch after the active Telegram transfer completes
 
@@ -225,3 +226,9 @@ This prevents a command from appearing in Telegram's command menu without having
 - Partial/incomplete files are rejected and cleaned before retrying.
 - Slow but still-moving downloads are never cancelled just because the speed is low.
 - Global transfer pressure is limited to 2 downloads and 2 uploads at a time for better stability on the configured 4-core / 8 GB VPS.
+
+## v34 sequence-order fix
+
+- Queue preview and processing now use the same natural sort order.
+- Added robust parsing for bracket/hyphen episode names such as `[S01] [EP-07]`.
+- Quality order remains 480p -> 720p -> 1080p, with season/episode ascending inside each quality.

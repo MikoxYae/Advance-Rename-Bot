@@ -8,6 +8,7 @@ from config import Config
 from helper.buttons import send_photo_styled
 from helper.database import settings_db
 from helper.rename.models import QueuedItem
+from helper.rename.parser import sort_queued_items
 from helper.rename.state import BATCH_STATUS_MESSAGES
 from helper.utils import safe_edit_text
 
@@ -48,7 +49,10 @@ def active_batch_markup() -> InlineKeyboardMarkup:
 
 
 def _queue_text(items: list[QueuedItem], *, next_batch: bool = False) -> str:
-    items = sorted(items, key=lambda item: item.message.id)
+    # Display the exact same natural order that /done will process.
+    # Never re-sort by Telegram arrival/message id here, otherwise the UI can
+    # show EP-07 before EP-06 even though processing later sorts correctly.
+    items = sort_queued_items(items)
     total = len(items)
     header = "<b>ɴᴇxᴛ ʙᴀᴛᴄʜ ǫᴜᴇᴜᴇ</b>" if next_batch else "<b>ʙᴀᴛᴄʜ ǫᴜᴇᴜᴇ</b>"
     lines = [

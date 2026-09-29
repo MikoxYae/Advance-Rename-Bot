@@ -12,6 +12,7 @@ from helper.database import settings_db
 from helper.rename.processing import prepare_batch_item
 from helper.rename.transfer import send_output
 from helper.rename.models import BatchCancelled, PreparedItem, QueuedItem
+from helper.rename.parser import sort_queued_items
 from helper.rename.state import (
     ACTIVE_BATCH_STATUS, BATCH_CANCEL_EVENTS, BATCH_STATUS_MESSAGES, BATCH_TASKS,
     PENDING_BATCHES, QUEUED_FILE_KEYS, RUNNING_BATCHES, get_batch_lock,
@@ -30,7 +31,7 @@ async def process_batch(
     batch_status: Message | None,
     cancel_event: asyncio.Event,
 ) -> None:
-    items = sorted(items, key=lambda item: item.message.id)
+    items = sort_queued_items(items)
     total = len(items)
     stats = {"uploaded": 0, "failed": 0, "cancelled": 0}
     # Size 1 guarantees only the immediate next prepared file can wait.
@@ -249,7 +250,7 @@ async def _start_batch_for_user(client: Client, uid: int, trigger: Message, *, d
             )
             return False
 
-        items = sorted(queue, key=lambda item: item.message.id)
+        items = sort_queued_items(queue)
         PENDING_BATCHES[uid] = []
         batch_status = BATCH_STATUS_MESSAGES.pop(uid, None)
         if batch_status is None:

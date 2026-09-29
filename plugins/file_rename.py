@@ -9,6 +9,7 @@ from pyrogram.types import CallbackQuery, Message
 from helper.database import settings_db
 from helper.rename.batch import _clear_waiting_queue, _start_batch_for_user
 from helper.rename.models import QueuedItem
+from helper.rename.parser import sort_queued_items
 from helper.rename.state import (
     ACTIVE_BATCH_STATUS, BATCH_CANCEL_EVENTS, BATCH_STATUS_MESSAGES, PENDING_BATCHES,
     QUEUED_FILE_KEYS, RUNNING_BATCHES, get_batch_lock,
@@ -56,7 +57,7 @@ async def batch_collect_handler(client: Client, message: Message):
             QUEUED_FILE_KEYS.add(active_key)
             queue = PENDING_BATCHES.setdefault(uid, [])
             queue.append(item)
-            queue.sort(key=lambda queued: queued.message.id)
+            queue[:] = sort_queued_items(queue)
             running = uid in RUNNING_BATCHES
             await _update_queue_message(message, queue, running)
 
