@@ -53,14 +53,15 @@ def resolve_button_style(button: Any) -> str | None:
     primary_words = (
         "back", "ʙᴀᴄᴋ", "settings", "sᴇᴛᴛɪɴɢs", "open", "ᴏᴘᴇɴ",
         "view", "ᴠɪᴇᴡ", "home", "ʜᴏᴍᴇ", "picture", "ᴘɪᴄᴛᴜʀᴇ",
-        "pics", "ᴘɪᴄs",
+        "pics", "ᴘɪᴄs", "next", "ɴᴇxᴛ", "previous", "ᴘʀᴇᴠɪᴏᴜs",
+        "page", "ᴘᴀɢᴇ",
     )
     if url or any(word in low for word in primary_words):
         return "primary"
     if data in {
         "settings:home", "settings:rename", "settings:media", "settings:container",
         "settings:font", "settings:thumb", "settings:caption", "settings:metadata",
-        "settings:pics",
+        "settings:pics", "settings:page:1", "settings:page:2",
     }:
         return "primary"
 

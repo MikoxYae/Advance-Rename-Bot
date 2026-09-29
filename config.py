@@ -28,8 +28,8 @@ class Config:
 
     # Transfer tuning for a 4-core / 8 GB VPS.
     PER_USER_JOBS = 2
-    DOWNLOAD_CONCURRENCY = 4
-    UPLOAD_CONCURRENCY = 4
+    DOWNLOAD_CONCURRENCY = 2
+    UPLOAD_CONCURRENCY = 2
     PROGRESS_UPDATE_SECONDS = 4.0
 
     @classmethod

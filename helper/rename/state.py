@@ -22,8 +22,9 @@ QUEUED_FILE_KEYS: set[tuple[int, str]] = set()
 DOWNLOAD_SLOTS = asyncio.Semaphore(Config.DOWNLOAD_CONCURRENCY)
 UPLOAD_SLOTS = asyncio.Semaphore(Config.UPLOAD_CONCURRENCY)
 
-DOWNLOAD_STALL_SECONDS = 60
-DOWNLOAD_ATTEMPTS = 3
+DOWNLOAD_STALL_SECONDS = 45
+DOWNLOAD_ATTEMPTS = 5
+DOWNLOAD_RETRY_BASE_SECONDS = 2
 
 
 def get_batch_lock(user_id: int) -> asyncio.Lock:

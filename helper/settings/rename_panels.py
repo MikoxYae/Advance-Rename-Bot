@@ -23,7 +23,7 @@ async def show_rename(query: CallbackQuery):
     rows = [[b(label, "settings:ask:format")]]
     if current:
         rows.append([b("ᴅᴇʟᴇᴛᴇ", "settings:delete:format_template")])
-    rows.append([b("ʙᴀᴄᴋ", "settings:home")])
+    rows.append([b("ʙᴀᴄᴋ", "settings:page:1")])
     await edit_panel(query, text, kb(rows))
 
 
@@ -41,7 +41,7 @@ async def show_media(query: CallbackQuery):
         [b("ᴅᴏᴄᴜᴍᴇɴᴛ" + mark("document"), "settings:media:set:document")],
         [b("ᴠɪᴅᴇᴏ" + mark("video"), "settings:media:set:video")],
         [b("ᴀᴜᴅɪᴏ" + mark("audio"), "settings:media:set:audio")],
-        [b("ʙᴀᴄᴋ", "settings:home")],
+        [b("ʙᴀᴄᴋ", "settings:page:1")],
     ]))
 
 
@@ -58,7 +58,7 @@ async def show_container(query: CallbackQuery):
     await edit_panel(query, text, kb([
         [b("sᴀᴍᴇ" + mark("same"), "settings:container:set:same")],
         [b("ᴍᴋᴠ" + mark("mkv"), "settings:container:set:mkv"), b("ᴍᴘ4" + mark("mp4"), "settings:container:set:mp4")],
-        [b("ʙᴀᴄᴋ", "settings:home")],
+        [b("ʙᴀᴄᴋ", "settings:page:1")],
     ]))
 
 
@@ -76,7 +76,7 @@ async def show_font(query: CallbackQuery):
         [b("ɪᴛᴀʟɪᴄ" + mark("italic"), "settings:font:set:italic"), b("ᴜɴᴅᴇʀʟɪɴᴇ" + mark("underline"), "settings:font:set:underline")],
         [b("sᴛʀɪᴋᴇ" + mark("strike"), "settings:font:set:strike"), b("ᴄᴏᴅᴇ" + mark("code"), "settings:font:set:code")],
         [b("sᴘᴏɪʟᴇʀ" + mark("spoiler"), "settings:font:set:spoiler")],
-        [b("ʙᴀᴄᴋ", "settings:home")],
+        [b("ʙᴀᴄᴋ", "settings:page:1")],
     ]))
 
 
@@ -91,7 +91,7 @@ async def show_thumb(query: CallbackQuery):
     rows = [[b(label, "settings:ask:thumbnail")]]
     if current:
         rows.append([b("ᴠɪᴇᴡ", "settings:thumb:view"), b("ᴅᴇʟᴇᴛᴇ", "settings:delete:thumbnail_file_id")])
-    rows.append([b("ʙᴀᴄᴋ", "settings:home")])
+    rows.append([b("ʙᴀᴄᴋ", "settings:page:2")])
     await edit_panel(query, text, kb(rows))
 
 
@@ -110,5 +110,5 @@ async def show_caption(query: CallbackQuery):
     rows = [[b(label, "settings:ask:caption")]]
     if current:
         rows.append([b("ᴅᴇʟᴇᴛᴇ", "settings:delete:caption")])
-    rows.append([b("ʙᴀᴄᴋ", "settings:home")])
+    rows.append([b("ʙᴀᴄᴋ", "settings:page:2")])
     await edit_panel(query, text, kb(rows))

@@ -7,6 +7,7 @@ from pathlib import Path
 from pyrogram.types import Message
 
 
+@dataclass
 class QueuedItem:
     message: Message
     media: object
@@ -14,6 +15,7 @@ class QueuedItem:
     original_name: str
 
 
+@dataclass
 class PreparedItem:
     queued: QueuedItem
     sequence: int

@@ -69,13 +69,13 @@ def _queue_text(items: list[QueuedItem], *, next_batch: bool = False) -> str:
         lines.append(f"\n<code>+ {total - len(shown)} ᴍᴏʀᴇ ғɪʟᴇs</code>")
     lines += [
         "",
-        "<b>ᴀʟʟ ғɪʟᴇs sᴇɴᴅ ʜᴏ ɢᴀʏᴇ ʜᴀɪɴ ᴛᴏ /done sᴇɴᴅ ᴋʀᴏ.</b>",
+        "<b>ᴡʜᴇɴ ʏᴏᴜ ʜᴀᴠᴇ sᴇɴᴛ ᴀʟʟ ғɪʟᴇs, sᴇɴᴅ /done ᴛᴏ sᴛᴀʀᴛ.</b>",
         "<code>/done</code> → ᴘʀᴏᴄᴇssɪɴɢ sᴛᴀʀᴛ",
         "<code>/clear</code> → ᴡᴀɪᴛɪɴɢ ǫᴜᴇᴜᴇ ᴄʟᴇᴀʀ",
         "<code>/cancel</code> → ʙᴀᴛᴄʜ ᴄᴀɴᴄᴇʟ",
     ]
     if next_batch:
-        lines += ["", "<blockquote>ᴄᴜʀʀᴇɴᴛ ʙᴀᴛᴄʜ ᴄʜᴀʟ ʀᴀʜᴀ ʜᴀɪ. ʏᴇ ғɪʟᴇs ɴᴇxᴛ ʙᴀᴛᴄʜ ᴍᴇ ʀᴀʜᴇɴɢɪ.</blockquote>"]
+        lines += ["", "<blockquote>ᴛʜᴇ ᴄᴜʀʀᴇɴᴛ ʙᴀᴛᴄʜ ɪs sᴛɪʟʟ ʀᴜɴɴɪɴɢ. ᴛʜᴇsᴇ ғɪʟᴇs ᴡɪʟʟ ʀᴇᴍᴀɪɴ ǫᴜᴇᴜᴇᴅ ғᴏʀ ᴛʜᴇ ɴᴇxᴛ ʙᴀᴛᴄʜ.</blockquote>"]
     return "\n".join(lines)
 
 

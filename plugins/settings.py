@@ -9,7 +9,7 @@ from config import Config
 from helper.buttons import edit_message_styled, send_photo_styled
 from helper.database import settings_db
 from helper.settings.common import b, edit_panel, kb
-from helper.settings.home import send_settings, show_home
+from helper.settings.home import send_settings, show_home, show_page
 from helper.settings.metadata import show_meta_field, show_metadata
 from helper.settings.pictures import _pic_default, show_ui_pic_field, show_ui_pics
 from helper.settings.rename_panels import (
@@ -24,6 +24,28 @@ async def settings_command(client: Client, message: Message):
     await send_settings(client, message)
 
 
+async def settings_page_callback(client: Client, query: CallbackQuery):
+    """Dedicated Page 1/Page 2 router.
+
+    Keeping pagination out of the generic settings callback avoids navigation
+    being affected by unrelated pending-state/settings branches.
+    """
+    uid = query.from_user.id
+    await settings_db.ensure_user(uid)
+    PENDING.pop(uid, None)
+    try:
+        await query.answer()
+    except Exception:
+        pass
+    page = 2 if query.data.endswith(":2") else 1
+    await show_page(query, page, answered=True)
+    # Explicitly stop this callback from reaching the generic settings router.
+    try:
+        query.stop_propagation()
+    except Exception:
+        pass
+
+
 async def settings_callback(client: Client, query: CallbackQuery):
     uid = query.from_user.id
     data = query.data
@@ -31,7 +53,7 @@ async def settings_callback(client: Client, query: CallbackQuery):
 
     if data in {"settings:home", "settings:cancel"}:
         PENDING.pop(uid, None)
-        return await show_home(query)
+        return await show_page(query, 1)
     if data == "settings:close":
         PENDING.pop(uid, None)
         await query.answer()
@@ -136,7 +158,7 @@ async def settings_callback(client: Client, query: CallbackQuery):
                 PENDING.pop(uid, None)
                 return await show_ui_pics(query)
             _, title, _ = PIC_FIELDS[kind]
-            prompt = f"<b>sᴇɴᴅ ɴᴇᴡ {title} ᴀs ᴀ ᴘʜᴏᴛᴏ.</b>\n\n<blockquote>ᴘʜᴏᴛᴏ sᴇɴᴅ ᴋʀᴏ; ғɪʟᴇ/ᴅᴏᴄᴜᴍᴇɴᴛ ɴᴀʜɪ.</blockquote>"
+            prompt = f"<b>sᴇɴᴅ ɴᴇᴡ {title} ᴀs ᴀ ᴘʜᴏᴛᴏ.</b>\n\n<blockquote>sᴇɴᴅ ᴀ ᴘʜᴏᴛᴏ ᴏɴʟʏ. ᴅᴏ ɴᴏᴛ sᴇɴᴅ ɪᴛ ᴀs ᴀ ғɪʟᴇ ᴏʀ ᴅᴏᴄᴜᴍᴇɴᴛ.</blockquote>"
             back = f"settings:pic:{kind}"
         elif action.startswith("meta:"):
             key = action.split(":", 1)[1]
@@ -168,6 +190,9 @@ async def settings_callback(client: Client, query: CallbackQuery):
 
 async def pending_text_handler(client: Client, message: Message):
     uid = message.from_user.id
+    # Commands must always be handled by their dedicated command handlers.
+    if (message.text or "").lstrip().startswith("/"):
+        return
     state = PENDING.get(uid)
     if not state:
         return
@@ -244,7 +269,7 @@ async def pending_photo_handler(client: Client, message: Message):
             PENDING.pop(uid, None)
             return
         field, title, _ = PIC_FIELDS[kind]
-        success_text = f"<b>{title} sᴀᴠᴇᴅ</b>\n\n<blockquote>ɴᴇᴡ ᴘɪᴄ ɴᴇxᴛ ᴛɪᴍᴇ ᴛʜᴀᴛ ᴘᴀɴᴇʟ/sᴛᴀᴛᴜs ɪs sᴇɴᴛ ᴛᴀʙ sᴇ ᴜsᴇ ʜᴏɢɪ.</blockquote>"
+        success_text = f"<b>{title} sᴀᴠᴇᴅ</b>\n\n<blockquote>ᴛʜᴇ ɴᴇᴡ ᴘɪᴄᴛᴜʀᴇ ᴡɪʟʟ ʙᴇ ᴜsᴇᴅ ᴛʜᴇ ɴᴇxᴛ ᴛɪᴍᴇ ᴛʜᴀᴛ ᴘᴀɴᴇʟ ᴏʀ sᴛᴀᴛᴜs ᴍᴇssᴀɢᴇ ɪs sᴇɴᴛ.</blockquote>"
         back = f"settings:pic:{kind}"
         back_text = "ʙᴀᴄᴋ ᴛᴏ ᴜɪ ᴘɪᴄᴛᴜʀᴇ"
     else:

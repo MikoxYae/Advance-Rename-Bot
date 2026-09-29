@@ -22,8 +22,8 @@ async def show_ui_pics(query: CallbackQuery):
 
     text = (
         "<b>ᴜɪ ᴘɪᴄᴛᴜʀᴇs</b>\n\n"
-        "<blockquote>ᴀᴘɴᴇ ʙᴏᴛ ᴜɪ ᴋᴇ ᴘɪᴄᴛᴜʀᴇs ʏᴀʜᴀɴ sᴇ ᴄʜᴀɴɢᴇ ᴋʀᴏ. "
-        "ᴘʜᴏᴛᴏ ᴛᴇʟᴇɢʀᴀᴍ ғɪʟᴇ_ɪᴅ ᴀs ᴘᴇʀsɪsᴛᴇɴᴛ sᴇᴛᴛɪɴɢ ᴍᴇ sᴀᴠᴇ ʜᴏɢɪ.</blockquote>\n\n"
+        "<blockquote>ᴄʜᴀɴɢᴇ ᴛʜᴇ ʙᴏᴛ ɪɴᴛᴇʀғᴀᴄᴇ ᴘɪᴄᴛᴜʀᴇs ғʀᴏᴍ ʜᴇʀᴇ. "
+        "ᴇᴀᴄʜ ᴘʜᴏᴛᴏ ɪs sᴀᴠᴇᴅ ᴀs ᴀ ᴛᴇʟᴇɢʀᴀᴍ ғɪʟᴇ_ɪᴅ ᴀɴᴅ ᴘᴇʀsɪsᴛs ɪɴ ʏᴏᴜʀ sᴇᴛᴛɪɴɢs.</blockquote>\n\n"
         f"<b>sᴛᴀʀᴛ ᴘɪᴄ:</b> <code>{state('ui_start_pic')}</code>\n"
         f"<b>sᴇᴛᴛɪɴɢs ᴘɪᴄ:</b> <code>{state('ui_settings_pic')}</code>\n"
         f"<b>sᴛᴀᴛᴜs ᴘɪᴄ:</b> <code>{state('ui_status_pic')}</code>"
@@ -31,7 +31,7 @@ async def show_ui_pics(query: CallbackQuery):
     await edit_panel(query, text, kb([
         [b("sᴛᴀʀᴛ ᴘɪᴄ", "settings:pic:start"), b("sᴇᴛᴛɪɴɢs ᴘɪᴄ", "settings:pic:settings")],
         [b("sᴛᴀᴛᴜs ᴘɪᴄ", "settings:pic:status")],
-        [b("ʙᴀᴄᴋ", "settings:home")],
+        [b("ʙᴀᴄᴋ", "settings:page:2")],
     ]))
 
 
@@ -43,8 +43,8 @@ async def show_ui_pic_field(query: CallbackQuery, kind: str):
         f"<b>{title}</b>\n\n"
         f"<b>ᴄᴜʀʀᴇɴᴛ:</b> <code>{state}</code>\n"
         f"<b>ᴜsᴇᴅ ғᴏʀ:</b> <code>{used_for}</code>\n\n"
-        "<blockquote>sᴇᴛ / ᴇᴅɪᴛ ᴘʀᴇss ᴋʀᴋᴇ ɴᴇᴡ ᴘʜᴏᴛᴏ sᴇɴᴅ ᴋʀᴏ. "
-        "ʀᴇsᴇᴛ ᴛᴏ ᴅᴇғᴀᴜʟᴛ sᴇ ᴄᴏɴғɪɢ ᴡᴀʟɪ ᴘɪᴄ ᴡᴀᴘᴀs ᴀᴀ ᴊᴀʏᴇɢɪ.</blockquote>"
+        "<blockquote>ᴘʀᴇss sᴇᴛ / ᴇᴅɪᴛ, ᴛʜᴇɴ sᴇɴᴅ ᴛʜᴇ ɴᴇᴡ ᴘʜᴏᴛᴏ. "
+        "ʀᴇsᴇᴛ ᴛᴏ ᴅᴇғᴀᴜʟᴛ ʀᴇsᴛᴏʀᴇs ᴛʜᴇ ᴘɪᴄᴛᴜʀᴇ ғʀᴏᴍ ᴛʜᴇ ʙᴏᴛ ᴄᴏɴғɪɢᴜʀᴀᴛɪᴏɴ.</blockquote>"
     )
     label = "ᴇᴅɪᴛ ᴘɪᴄ" if current else "sᴇᴛ ᴘɪᴄ"
     rows = [

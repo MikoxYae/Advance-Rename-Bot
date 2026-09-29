@@ -11,7 +11,7 @@ START_TEXT = (
     "<blockquote>ʀᴇɴᴀᴍᴇ ʏᴏᴜʀ ғɪʟᴇs ᴡɪᴛʜ ʏᴏᴜʀ sᴀᴠᴇᴅ sᴇᴛᴛɪɴɢs.</blockquote>\n\n"
     "<b>ᴏᴘᴇɴ sᴇᴛᴛɪɴɢs ᴛᴏ ᴄᴏɴғɪɢᴜʀᴇ ᴀᴜᴛᴏ ʀᴇɴᴀᴍᴇ, ᴄᴀᴘᴛɪᴏɴ, "
     "ᴛʜᴜᴍʙɴᴀɪʟ, ᴍᴇᴅɪᴀ ᴛʏᴘᴇ ᴀɴᴅ ᴍᴇᴛᴀᴅᴀᴛᴀ.</b>\n\n"
-    "<blockquote>ғɪʟᴇs sᴇɴᴅ ᴋʀᴏ → ǫᴜᴇᴜᴇ ʙᴀɴᴇɢɪ → /done sᴇ ᴘʀᴏᴄᴇssɪɴɢ sᴛᴀʀᴛ.</blockquote>"
+    "<blockquote>sᴇɴᴅ ʏᴏᴜʀ ғɪʟᴇs → ᴛʜᴇ ʙᴏᴛ ʙᴜɪʟᴅs ᴛʜᴇ ǫᴜᴇᴜᴇ → sᴇɴᴅ /done ᴛᴏ sᴛᴀʀᴛ ᴘʀᴏᴄᴇssɪɴɢ.</blockquote>"
 )
 
 
@@ -21,7 +21,6 @@ def start_keyboard():
     ])
 
 
-@Client.on_message(filters.private & filters.command("start"))
 async def start_handler(client: Client, message: Message):
     user = await settings_db.get_user(message.from_user.id)
     markup = start_keyboard()

@@ -9,7 +9,12 @@ from pyrogram import Client
 from pyrogram.types import Message
 
 from helper.rename.models import BatchCancelled
-from helper.rename.state import DOWNLOAD_ATTEMPTS, DOWNLOAD_STALL_SECONDS, UPLOAD_SLOTS
+from helper.rename.state import (
+    DOWNLOAD_ATTEMPTS,
+    DOWNLOAD_RETRY_BASE_SECONDS,
+    DOWNLOAD_STALL_SECONDS,
+    UPLOAD_SLOTS,
+)
 from helper.rename.ui import reply_status
 from helper.utils import progress_for_pyrogram, safe_edit_text
 
@@ -17,14 +22,45 @@ logger = logging.getLogger(__name__)
 
 
 async def _download_progress(current, total, stage, status, started, state):
-    state["last_activity"] = time.monotonic()
-    state["current"] = current
-    # file_id-only downloads can report total=0. We keep the size from the
-    # Telegram media object as a reliable fallback.
+    """Track real byte movement, not merely callback activity.
+
+    Pyrogram can occasionally invoke the progress callback repeatedly with the
+    same byte count while a DC/network connection is stuck.  Updating the
+    watchdog timestamp for those duplicate callbacks makes a stalled transfer
+    look alive forever.  Only genuine forward byte movement resets the stall
+    timer.
+    """
+    current = int(current or 0)
+    previous = int(state.get("current", 0) or 0)
+
+    if current > previous:
+        now = time.monotonic()
+        state["last_progress_at"] = now
+        state["last_progress_bytes"] = current
+        state["current"] = current
+    elif current < previous:
+        # Defensive reset if Pyrogram restarts the transfer internally.
+        state["last_progress_at"] = time.monotonic()
+        state["last_progress_bytes"] = current
+        state["current"] = current
+
     effective_total = int(total or state.get("total") or 0)
     if effective_total:
         state["total"] = effective_total
+
     await progress_for_pyrogram(current, effective_total, stage, status, started)
+
+
+def _download_source(source_message: Message, media, attempt: int):
+    """Alternate between Message and file_id across retries.
+
+    Message mode is preferred because it carries full media metadata.  A fresh
+    file-id request can recover from an occasional stale message/DC transfer.
+    """
+    file_id = getattr(media, "file_id", None)
+    if attempt % 2 == 0 and file_id:
+        return file_id, "file_id"
+    return source_message, "message"
 
 
 async def download_media_reliable(
@@ -34,44 +70,48 @@ async def download_media_reliable(
     destination: Path,
     status: Message,
 ) -> str:
-    """Download with accurate size, stall detection and retry."""
+    """Download a Telegram file with byte-based stall detection and retries."""
     last_error: Exception | None = None
+    expected_size = int(getattr(media, "file_size", 0) or 0)
 
     for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
         try:
-            if destination.exists():
-                destination.unlink()
+            destination.unlink(missing_ok=True)
         except Exception:
             pass
 
         state = {
-            "last_activity": time.monotonic(),
+            "last_progress_at": time.monotonic(),
+            "last_progress_bytes": 0,
             "current": 0,
-            "total": int(getattr(media, "file_size", 0) or 0),
+            "total": expected_size,
         }
         started = time.time()
+        source, source_mode = _download_source(source_message, media, attempt)
 
         if attempt > 1:
+            reason = str(last_error or "connection stalled")
             await safe_edit_text(
                 status,
-                f"<b>ᴅᴏᴡɴʟᴏᴀᴅ ʀᴇᴛʀʏ {attempt}/{DOWNLOAD_ATTEMPTS}...</b>\n\n"
+                f"<b>ᴅᴏᴡɴʟᴏᴀᴅ ʀᴇᴛʀʏ {attempt}/{DOWNLOAD_ATTEMPTS}</b>\n\n"
+                f"<b>ᴍᴏᴅᴇ:</b> <code>{source_mode}</code>\n"
+                f"<b>ʀᴇᴀsᴏɴ:</b> <code>{reason[:180]}</code>\n\n"
                 "<code>ʀᴇᴄᴏɴɴᴇᴄᴛɪɴɢ ᴛᴏ ᴛᴇʟᴇɢʀᴀᴍ...</code>",
             )
 
         logger.info(
-            "Download attempt %s/%s file=%s size=%s destination=%s",
+            "Download attempt %s/%s mode=%s file=%s size=%s destination=%s",
             attempt,
             DOWNLOAD_ATTEMPTS,
-            getattr(media, "file_name", None) or getattr(media, "file_id", "")[:24],
-            getattr(media, "file_size", 0),
+            source_mode,
+            getattr(media, "file_name", None) or str(getattr(media, "file_id", ""))[:24],
+            expected_size,
             destination,
         )
 
-        # Passing the Message gives Pyrogram the media size as well as file_id,
-        # fixing the old '/ 0 B' progress output.
         task = asyncio.create_task(
             client.download_media(
-                source_message,
+                source,
                 file_name=str(destination),
                 progress=_download_progress,
                 progress_args=("ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ", status, started, state),
@@ -80,27 +120,46 @@ async def download_media_reliable(
 
         try:
             while True:
-                done, _ = await asyncio.wait({task}, timeout=5)
+                done, _ = await asyncio.wait({task}, timeout=3)
                 if task in done:
                     result = await task
                     if not result:
                         raise RuntimeError("Telegram returned no downloaded file")
+
                     result_path = Path(result)
-                    if not result_path.exists() or result_path.stat().st_size <= 0:
+                    if not result_path.exists():
+                        raise RuntimeError("Downloaded file was not created")
+
+                    actual_size = result_path.stat().st_size
+                    if actual_size <= 0:
                         raise RuntimeError("Downloaded file is empty")
-                    logger.info("Download complete: %s (%s bytes)", result_path, result_path.stat().st_size)
+                    if expected_size and actual_size < expected_size:
+                        raise RuntimeError(
+                            f"Incomplete download: {actual_size}/{expected_size} bytes"
+                        )
+
+                    logger.info(
+                        "Download complete attempt=%s mode=%s path=%s bytes=%s",
+                        attempt,
+                        source_mode,
+                        result_path,
+                        actual_size,
+                    )
                     return str(result_path)
 
-                idle = time.monotonic() - state["last_activity"]
+                idle = time.monotonic() - float(state["last_progress_at"])
                 if idle >= DOWNLOAD_STALL_SECONDS:
+                    bytes_done = int(state.get("current", 0) or 0)
                     task.cancel()
                     try:
                         await task
                     except BaseException:
                         pass
                     raise TimeoutError(
-                        f"No Telegram download data received for {DOWNLOAD_STALL_SECONDS} seconds"
+                        "Telegram download stalled: no new bytes for "
+                        f"{DOWNLOAD_STALL_SECONDS}s (received {bytes_done} bytes)"
                     )
+
         except Exception as exc:
             last_error = exc
             if not task.done():
@@ -109,9 +168,24 @@ async def download_media_reliable(
                     await task
                 except BaseException:
                     pass
-            logger.warning("Download attempt %s failed: %s", attempt, exc)
+
+            try:
+                destination.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+            logger.warning(
+                "Download attempt %s/%s failed mode=%s: %s",
+                attempt,
+                DOWNLOAD_ATTEMPTS,
+                source_mode,
+                exc,
+            )
+
             if attempt < DOWNLOAD_ATTEMPTS:
-                await asyncio.sleep(2 * attempt)
+                # Short bounded backoff: enough to let a bad DC socket reset,
+                # without leaving a user staring at a stuck status for minutes.
+                await asyncio.sleep(min(DOWNLOAD_RETRY_BASE_SECONDS * attempt, 8))
 
     raise RuntimeError(f"Download failed after {DOWNLOAD_ATTEMPTS} attempts: {last_error}")
 
@@ -154,15 +228,11 @@ async def send_output(
 
     try:
         async with UPLOAD_SLOTS:
-            # A cancel request that arrived while waiting for a global upload
-            # slot must stop this file before any new Telegram upload begins.
             if cancel_event is not None and cancel_event.is_set():
                 if upload_started_event is not None:
                     upload_started_event.set()
                 raise BatchCancelled("Batch cancelled before upload slot was used")
 
-            # Signal only after a real global Telegram upload slot is acquired.
-            # The producer uses this to start preparing/downloading the next file.
             if upload_started_event is not None:
                 upload_started_event.set()
             try:

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import html
+import logging
+
 from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, Message
 
@@ -13,40 +16,63 @@ from helper.rename.state import (
 from helper.rename.ui import _update_queue_message, reply_status
 from helper.utils import safe_edit_text
 
+logger = logging.getLogger(__name__)
+
 
 async def batch_collect_handler(client: Client, message: Message):
-    uid = message.from_user.id
-    user = await settings_db.get_user(uid)
-    if not user.get("format_template"):
-        return await message.reply_text(
-            "<b>ᴀᴜᴛᴏ ʀᴇɴᴀᴍᴇ ғᴏʀᴍᴀᴛ ɪs ɴᴏᴛ sᴇᴛ.</b>\n\n"
-            "ᴏᴘᴇɴ /settings ᴀɴᴅ sᴇᴛ ɪᴛ ғɪʀsᴛ."
+    """Collect incoming files into the pending batch without downloading them."""
+    try:
+        if not message.from_user:
+            return
+        uid = message.from_user.id
+        media = message.document or message.video or message.audio
+        if media is None:
+            return
+
+        user = await settings_db.get_user(uid)
+        if not user.get("format_template"):
+            return await message.reply_text(
+                "<b>ᴀᴜᴛᴏ ʀᴇɴᴀᴍᴇ ғᴏʀᴍᴀᴛ ɪs ɴᴏᴛ sᴇᴛ.</b>\n\n"
+                "ᴏᴘᴇɴ /settings ᴀɴᴅ sᴇᴛ ɪᴛ ғɪʀsᴛ."
+            )
+
+        unique = str(getattr(media, "file_unique_id", None) or media.file_id)
+        active_key = (uid, unique)
+        if active_key in QUEUED_FILE_KEYS:
+            return await message.reply_text("<b>ᴛʜɪs ғɪʟᴇ ɪs ᴀʟʀᴇᴀᴅʏ ɪɴ ᴛʜᴇ ǫᴜᴇᴜᴇ.</b>")
+
+        original_name = getattr(media, "file_name", None) or (
+            "video.mp4" if message.video else "audio.mp3" if message.audio else "file.bin"
+        )
+        item = QueuedItem(
+            message=message,
+            media=media,
+            unique=unique,
+            original_name=original_name,
         )
 
-    media = message.document or message.video or message.audio
-    unique = str(getattr(media, "file_unique_id", None) or media.file_id)
-    active_key = (uid, unique)
-    if active_key in QUEUED_FILE_KEYS:
-        return await message.reply_text("<b>ᴛʜɪs ғɪʟᴇ ɪs ᴀʟʀᴇᴀᴅʏ ɪɴ ᴛʜᴇ ǫᴜᴇᴜᴇ.</b>")
+        lock = get_batch_lock(uid)
+        async with lock:
+            QUEUED_FILE_KEYS.add(active_key)
+            queue = PENDING_BATCHES.setdefault(uid, [])
+            queue.append(item)
+            queue.sort(key=lambda queued: queued.message.id)
+            running = uid in RUNNING_BATCHES
+            await _update_queue_message(message, queue, running)
 
-    original_name = getattr(media, "file_name", None) or (
-        "video.mp4" if message.video else "audio.mp3" if message.audio else "file.bin"
-    )
-    item = QueuedItem(
-        message=message,
-        media=media,
-        unique=unique,
-        original_name=original_name,
-    )
-
-    lock = get_batch_lock(uid)
-    async with lock:
-        QUEUED_FILE_KEYS.add(active_key)
-        queue = PENDING_BATCHES.setdefault(uid, [])
-        queue.append(item)
-        queue.sort(key=lambda queued: queued.message.id)
-        running = uid in RUNNING_BATCHES
-        await _update_queue_message(message, queue, running)
+        logger.info(
+            "Queued file user=%s message=%s position=%s name=%s",
+            uid, message.id, len(PENDING_BATCHES.get(uid, [])), original_name,
+        )
+    except Exception as exc:
+        logger.exception("File intake failed for message %s", getattr(message, "id", "?"))
+        try:
+            await message.reply_text(
+                "<b>ғɪʟᴇ ᴅᴇᴛᴇᴄᴛɪᴏɴ ғᴀɪʟᴇᴅ.</b>\n\n"
+                f"<code>{html.escape(str(exc)[:700])}</code>"
+            )
+        except Exception:
+            pass
 
 
 async def done_handler(client: Client, message: Message):
@@ -73,7 +99,7 @@ async def clear_handler(client: Client, message: Message):
             message,
             "<b>ǫᴜᴇᴜᴇ ᴄʟᴇᴀʀᴇᴅ</b>\n\n"
             f"<b>ʀᴇᴍᴏᴠᴇᴅ:</b> <code>{len(items)} ғɪʟᴇs</code>\n"
-            + ("<blockquote>ᴄᴜʀʀᴇɴᴛ ʀᴜɴɴɪɴɢ ʙᴀᴛᴄʜ ɪs ɴᴏᴛ ᴀғғᴇᴄᴛᴇᴅ. /cancel ᴜsᴇ ᴋʀᴏ ᴛᴏ sᴛᴏᴘ ɪᴛ.</blockquote>" if running else ""),
+            + ("<blockquote>ᴛʜᴇ ᴄᴜʀʀᴇɴᴛ ʀᴜɴɴɪɴɢ ʙᴀᴛᴄʜ ɪs ɴᴏᴛ ᴀғғᴇᴄᴛᴇᴅ. ᴜsᴇ /cancel ᴛᴏ sᴛᴏᴘ ɪᴛ sᴀғᴇʟʏ.</blockquote>" if running else ""),
         )
 
     try:

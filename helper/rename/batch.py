@@ -45,7 +45,7 @@ async def process_batch(
             "<b>ʙᴀᴛᴄʜ sᴛᴀʀᴛᴇᴅ</b>\n\n"
             f"<b>ᴛᴏᴛᴀʟ ғɪʟᴇs:</b> <code>{total}</code>\n"
             "<blockquote>ᴘɪᴘᴇʟɪɴᴇ: 1 ᴜᴘʟᴏᴀᴅ + ɴᴇxᴛ 1 ᴅᴏᴡɴʟᴏᴀᴅ.\n"
-            "ɴᴇxᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴄᴜʀʀᴇɴᴛ ᴜᴘʟᴏᴀᴅ sᴛᴀʀᴛ ʜᴏɴᴇ ᴋᴇ ʙᴀᴀᴅ ʜɪ sᴛᴀʀᴛ ʜᴏɢᴀ.\n"
+            "ᴛʜᴇ ɴᴇxᴛ ᴅᴏᴡɴʟᴏᴀᴅ sᴛᴀʀᴛs ᴏɴʟʏ ᴀғᴛᴇʀ ᴛʜᴇ ᴄᴜʀʀᴇɴᴛ ᴜᴘʟᴏᴀᴅ ʜᴀs ᴀᴄᴛᴜᴀʟʟʏ sᴛᴀʀᴛᴇᴅ.\n"
             "ᴜᴘʟᴏᴀᴅ ᴏʀᴅᴇʀ sᴛʀɪᴄᴛ: 01 → 02 → 03 → ...</blockquote>",
             reply_markup=active_batch_markup(),
         )
@@ -225,7 +225,7 @@ async def _start_batch_for_user(client: Client, uid: int, trigger: Message, *, d
                     trigger,
                     "<b>ᴄᴜʀʀᴇɴᴛ ʙᴀᴛᴄʜ ᴀʟʀᴇᴀᴅʏ ᴘʀᴏᴄᴇssɪɴɢ.</b>\n\n"
                     f"<b>ɴᴇxᴛ ʙᴀᴛᴄʜ:</b> <code>{len(waiting)} ғɪʟᴇs</code>\n"
-                    "ᴄᴜʀʀᴇɴᴛ ʙᴀᴛᴄʜ ᴄᴏᴍᴘʟᴇᴛᴇ ʜᴏɴᴇ ᴋᴇ ʙᴀᴀᴅ /done sᴇɴᴅ ᴋʀᴏ.",
+                    "sᴇɴᴅ /done ᴀғᴛᴇʀ ᴛʜᴇ ᴄᴜʀʀᴇɴᴛ ʙᴀᴛᴄʜ ʜᴀs ᴄᴏᴍᴘʟᴇᴛᴇᴅ.",
                 )
             else:
                 await reply_status(trigger, "<b>ʙᴀᴛᴄʜ ᴀʟʀᴇᴀᴅʏ ᴘʀᴏᴄᴇssɪɴɢ.</b>")
@@ -236,7 +236,7 @@ async def _start_batch_for_user(client: Client, uid: int, trigger: Message, *, d
             await reply_status(
                 trigger,
                 "<b>ǫᴜᴇᴜᴇ ᴇᴍᴘᴛʏ.</b>\n\n"
-                "ғɪʟᴇs sᴇɴᴅ ᴋʀᴏ, ᴘʜɪʀ <code>/done</code> sᴇɴᴅ ᴋʀᴏ.",
+                "sᴇɴᴅ ʏᴏᴜʀ ғɪʟᴇs ғɪʀsᴛ, ᴛʜᴇɴ sᴇɴᴅ <code>/done</code>.",
             )
             return False
 
@@ -245,7 +245,7 @@ async def _start_batch_for_user(client: Client, uid: int, trigger: Message, *, d
             await reply_status(
                 trigger,
                 "<b>ᴀᴜᴛᴏ ʀᴇɴᴀᴍᴇ ғᴏʀᴍᴀᴛ ɪs ɴᴏᴛ sᴇᴛ.</b>\n\n"
-                "ǫᴜᴇᴜᴇ sᴀғᴇ ʜᴀɪ. /settings ᴍᴇ ғᴏʀᴍᴀᴛ sᴇᴛ ᴋʀᴋᴇ /done sᴇɴᴅ ᴋʀᴏ.",
+                "ʏᴏᴜʀ ǫᴜᴇᴜᴇᴅ ғɪʟᴇs ᴀʀᴇ sᴀғᴇ. sᴇᴛ ᴛʜᴇ ʀᴇɴᴀᴍᴇ ғᴏʀᴍᴀᴛ ɪɴ /settings, ᴛʜᴇɴ sᴇɴᴅ /done.",
             )
             return False
 

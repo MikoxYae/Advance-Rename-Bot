@@ -7,7 +7,7 @@ A Telegram batch auto-rename bot with a button-based `/settings` panel, strict F
 The bot automatically synchronizes its Telegram command menu every time it starts. No BotFather command setup is required.
 
 - `/start` — open the bot
-- `/settings` — open all rename settings
+- `/settings` — open the paginated rename settings panel
 - `/mediainfo` — reply to a media file to generate a self-hosted MediaInfo report
 - `/done` — start the files currently collected in the batch queue
 - `/clear` — clear waiting files without interrupting the running batch
@@ -35,14 +35,18 @@ A per-user upload lock, one-item prepared queue and sequence guard prevent accid
 
 ## Settings panel
 
-All rename configuration is handled through `/settings` buttons and persisted in MongoDB.
+All rename configuration is handled through `/settings` buttons and persisted in MongoDB. The panel is split into two pages so the interface stays compact on mobile.
 
-Available controls include:
+**Page 1 — Rename & Output**
 
 - Auto Rename format
 - Media Type: Same / Document / Video / Audio
 - File Format: Same / MKV / MP4
 - Filename Font: Normal / Bold / Italic / Underline / Strike / Code / Spoiler
+
+**Page 2 — Advanced & UI**
+
+
 - Thumbnail: set/edit/view/delete
 - Custom Caption
 - Metadata On/Off
@@ -132,7 +136,7 @@ For an already-cloned repository:
 ```bash
 cd /root/Advance-Rename-Bot
 pkill -f "python3 miko.py" 2>/dev/null || true
-unzip -o /root/Advance-Rename-Bot-Configured-v26.zip -d .
+unzip -o /root/Advance-Rename-Bot-Configured-v27.zip -d .
 source venv/bin/activate
 pip install -r requirements.txt
 python3 -m compileall -q .
@@ -185,4 +189,39 @@ helper/
   mediainfo_report.py           # responsive HTML report generation
 ```
 
-This is a structural refactor only: the v25 queue, strict upload order, settings, MediaInfo, picture controls and colored-button behavior are preserved.
+The v27 interface keeps the modular structure, converts all user-facing instructions to English, and adds a two-page settings panel while preserving the queue, strict upload order, MediaInfo, picture controls and colored-button behavior.
+
+## Handler Registration Note
+
+All Telegram features are explicitly registered as Pyrogram handlers. The modular layout keeps implementation code separate, but the plugin entry modules retain the decorators required for runtime dispatch:
+
+- `/start`
+- `/settings` and all `settings:*` callbacks
+- `/mediainfo`
+- `/done`, `/clear`, `/cancel`
+- `batch:*` callbacks
+- incoming private document/video/audio queue collection
+- pending settings text/photo input
+
+This prevents a command from appearing in Telegram's command menu without having a runtime handler attached.
+
+### v30 settings pagination fix
+- Page 1 / Page 2 navigation has a dedicated callback route.
+- Settings pagination falls back to recreating the panel if Telegram cannot edit the existing message.
+
+
+## Runtime reliability
+
+- Incoming Telegram documents/videos/audio are collected into the batch queue immediately.
+- Queue model objects are validated data classes; failed intake now reports an explicit Telegram error instead of failing silently.
+- `/done` starts download → rename/remux/metadata → strict-sequence upload.
+
+## Transfer Reliability (v32)
+
+- Download watchdog resets only when the received byte count actually increases.
+- A transfer with no new bytes for 45 seconds is treated as stalled and retried.
+- Up to 5 download attempts are made with short bounded backoff.
+- Retries alternate between the Telegram message and direct `file_id` source.
+- Partial/incomplete files are rejected and cleaned before retrying.
+- Slow but still-moving downloads are never cancelled just because the speed is low.
+- Global transfer pressure is limited to 2 downloads and 2 uploads at a time for better stability on the configured 4-core / 8 GB VPS.

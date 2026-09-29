@@ -25,7 +25,7 @@ async def show_metadata(query: CallbackQuery):
         [b("ᴛɪᴛʟᴇ", "settings:meta:title"), b("ᴀᴜᴛʜᴏʀ", "settings:meta:author")],
         [b("ᴀʀᴛɪsᴛ", "settings:meta:artist"), b("ᴀᴜᴅɪᴏ", "settings:meta:audio")],
         [b("sᴜʙᴛɪᴛʟᴇ", "settings:meta:subtitle"), b("ᴠɪᴅᴇᴏ", "settings:meta:video")],
-        [b("ʙᴀᴄᴋ", "settings:home")],
+        [b("ʙᴀᴄᴋ", "settings:page:2")],
     ]))
 
 
